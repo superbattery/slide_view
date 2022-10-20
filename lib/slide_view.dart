@@ -12,7 +12,7 @@ class SlideView extends StatefulWidget {
     required this.child,
     this.background,
     this.duration,
-    this.cubic,
+    this.curve,
     this.collapsedHeight = 70,
     this.onChange,
   });
@@ -20,7 +20,7 @@ class SlideView extends StatefulWidget {
   final Widget child;
   final Widget? background;
   final Duration? duration;
-  final Cubic? cubic;
+  final Curve? curve;
   final double collapsedHeight;
   final void Function(bool isOpen)? onChange;
 
@@ -33,7 +33,7 @@ class SlideViewState extends State<SlideView> with TickerProviderStateMixin {
   late CurvedAnimation _curved;
 
   /// 效果
-  static const Cubic _cubic = Curves.easeOutExpo;
+  static const Cubic _curve = Curves.easeOutExpo;
 
   /// 标准的滑动效果时长,
   /// 且该时长下的滑动效果是最缓慢的了, 再慢
@@ -76,7 +76,7 @@ class SlideViewState extends State<SlideView> with TickerProviderStateMixin {
 
     _curved = CurvedAnimation(
       parent: _ac,
-      curve: widget.cubic ?? _cubic,
+      curve: widget.curve ?? _curve,
     )..addListener(() {
         _setStateInner?.call(() {
           var leftDistance = _animTargetDirection
@@ -144,8 +144,16 @@ class SlideViewState extends State<SlideView> with TickerProviderStateMixin {
     }));
   }
 
+  /// 改变抽屉的状态
+  /// 
+  /// 若当前抽屉状态已处于目标状态, 则不做任何事.
+  /// 否则取消当前正在进行的动画, 并改变抽屉为目标状态
+  /// 
+  /// 返回的Future得到值后代表动画结束, 已改变抽屉为目标状态, 
+  /// 或者当前的动画被取消, 抽屉状态未知
   Future<void> change(bool opening) async {
-    if (this.isOpen == opening) {
+    // ignore: unnecessary_this
+    if (this.isOpen == _animTargetDirection && this.isOpen == opening) {
       return;
     }
     _animTargetDirection = opening;
