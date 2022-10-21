@@ -116,65 +116,67 @@ class SlideViewState extends State<SlideView> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(builder: ((context, p1) {
-      //这里可能会被调用多次, 且前几次获取到的height值可能不是最新的,
-      //比如可能为0
-      height = p1.biggest.height;
-      //每次height值改变即更新
-      WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-        //initialize the offset
-        _offset = Offset(0.0, _isCurOffsetZero ? 0.0 : _maxOffsetY());
-        //无论setState是否为空都在它外面进行赋值操作
-        //避免setState为空时赋值操作未被执行
-        _setStateInner?.call(() {});
-      });
+    return LayoutBuilder(builder: buildForLayout);
+  }
 
-      var slidePanel = StatefulBuilder(builder: ((context, setState) {
-        _setStateInner = setState;
-        var offsetPercentage = _offsetPercentage();
-        //collapsed view
-        var collapsedView = SizedBox(
-          height: widget.collapsedHeight,
-          child: IgnorePointer(
-            ignoring: offsetPercentage.dy == 0.0,
-            child: Opacity(
-              opacity: offsetPercentage.dy,
-              child: widget.collapsedChild,
-            ),
-          ),
-        );
+  Widget buildForLayout(context, p1) {
+    //这里可能会被调用多次, 且前几次获取到的height值可能不是最新的,
+    //比如可能为0
+    height = p1.biggest.height;
+    //每次height值改变即更新
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      //initialize the offset
+      _offset = Offset(0.0, _isCurOffsetZero ? 0.0 : _maxOffsetY());
+      //无论setState是否为空都在它外面进行赋值操作
+      //避免setState为空时赋值操作未被执行
+      _setStateInner?.call(() {});
+    });
 
-        return Transform.translate(
-          offset: Offset(0.0, _offset.dy),
-          //`Transform.translate`的`child`默认会被expand,
-          //如有需要, 这里可以指定alignment和size
-          child: SizedBox(
-            child: GestureDetector(
-              onVerticalDragDown: _handleOnVDragDown,
-              onVerticalDragUpdate: _handleOnVDragUpdate,
-              onVerticalDragEnd: _handleOnVDragEnd,
-              child: Stack(children: [
-                widget.child,
-                Align(
-                  alignment: Alignment.topCenter,
-                  child: collapsedView,
-                ),
-              ]),
-            ),
+    var slidePanel = StatefulBuilder(builder: (context, setState) {
+      _setStateInner = setState;
+      var offsetPercentage = _offsetPercentage();
+      //collapsed view
+      var collapsedView = SizedBox(
+        height: widget.collapsedHeight,
+        child: IgnorePointer(
+          ignoring: offsetPercentage.dy == 0.0,
+          child: Opacity(
+            opacity: offsetPercentage.dy,
+            child: widget.collapsedChild,
           ),
-        );
-      }));
-
-      return Stack(
-        children: [
-          Padding(
-            padding: EdgeInsets.only(bottom: widget.collapsedHeight),
-            child: widget.background,
-          ),
-          slidePanel,
-        ],
+        ),
       );
-    }));
+
+      return Transform.translate(
+        offset: Offset(0.0, _offset.dy),
+        //`Transform.translate`的`child`默认会被expand,
+        //如有需要, 这里可以指定alignment和size
+        child: SizedBox(
+          child: GestureDetector(
+            onVerticalDragDown: _handleOnVDragDown,
+            onVerticalDragUpdate: _handleOnVDragUpdate,
+            onVerticalDragEnd: _handleOnVDragEnd,
+            child: Stack(children: [
+              widget.child,
+              Align(
+                alignment: Alignment.topCenter,
+                child: collapsedView,
+              ),
+            ]),
+          ),
+        ),
+      );
+    });
+
+    return Stack(
+      children: [
+        Padding(
+          padding: EdgeInsets.only(bottom: widget.collapsedHeight),
+          child: widget.background,
+        ),
+        slidePanel,
+      ],
+    );
   }
 
   /// 改变抽屉的状态
