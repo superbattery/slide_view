@@ -70,13 +70,24 @@ class _MyHomePageState extends State<MyHomePage> {
     );
     return SlideView(
       key: slideView,
+      //curve: Curves.fastLinearToSlowEaseIn,
+      //duration: Duration(milliseconds: 2000),
       background: home,
+      // ignore: sort_child_properties_last
       child: Container(
         color: Colors.amber,
         child: const Center(child: Text("Hello")),
       ),
+      collapsedChild: Container(
+        color: Colors.yellow,
+        child: Center(
+          child: TextButton(
+              onPressed: () => slideView.currentState?.change(true),
+              child: const Text("Slide up")),
+        ),
+      ),
       onChange: ((isOpen) {
-        print("changed: $isOpen");
+        print("changed to: $isOpen");
       }),
     );
   }

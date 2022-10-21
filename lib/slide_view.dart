@@ -10,6 +10,7 @@ class SlideView extends StatefulWidget {
   const SlideView({
     super.key,
     required this.child,
+    this.collapsedChild,
     this.background,
     this.duration,
     this.curve,
@@ -18,6 +19,7 @@ class SlideView extends StatefulWidget {
   });
 
   final Widget child;
+  final Widget? collapsedChild;
   final Widget? background;
   final Duration? duration;
   final Curve? curve;
@@ -69,6 +71,15 @@ class SlideViewState extends State<SlideView> with TickerProviderStateMixin {
   ///
   void Function(void Function())? _setStateInner;
 
+  /// max offset allowed
+  double _maxOffsetY() => height - widget.collapsedHeight;
+
+  /// 当前偏移量与原点的距离的百分比值,
+  /// range: 0.0-1.0
+  ///
+  /// 可用于同步计算其它动画效果等
+  Offset _offsetPercentage() => Offset(0.0, _offset.dy / _maxOffsetY());
+
   @override
   void initState() {
     super.initState();
@@ -85,16 +96,12 @@ class SlideViewState extends State<SlideView> with TickerProviderStateMixin {
         _setStateInner?.call(() {
           var leftDistance = _wantOffsetZero
               ? _offsetSnapshot.dy
-              : (height - widget.collapsedHeight) - _offsetSnapshot.dy;
+              : _maxOffsetY() - _offsetSnapshot.dy;
           _offset = Offset(
               _offsetSnapshot.dx,
               _offsetSnapshot.dy +
                   (_wantOffsetZero ? -leftDistance : leftDistance) *
                       _curved.value);
-
-          //百分比, 用于同步计算其它效果
-          var percent = 1 - _offset.dy / (height - widget.collapsedHeight);
-          //TODO: 背景透明度
         });
       });
     //height = MediaQuery.of(context).size.height;
@@ -116,34 +123,55 @@ class SlideViewState extends State<SlideView> with TickerProviderStateMixin {
       //每次height值改变即更新
       WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
         //initialize the offset
-        _offset = Offset(
-            0.0, _isCurOffsetZero ? 0.0 : height - widget.collapsedHeight);
+        _offset = Offset(0.0, _isCurOffsetZero ? 0.0 : _maxOffsetY());
         //无论setState是否为空都在它外面进行赋值操作
         //避免setState为空时赋值操作未被执行
         _setStateInner?.call(() {});
       });
+
+      var slidePanel = StatefulBuilder(builder: ((context, setState) {
+        _setStateInner = setState;
+        var offsetPercentage = _offsetPercentage();
+        //collapsed view
+        var collapsedView = SizedBox(
+          height: widget.collapsedHeight,
+          child: IgnorePointer(
+            ignoring: offsetPercentage.dy == 0.0,
+            child: Opacity(
+              opacity: offsetPercentage.dy,
+              child: widget.collapsedChild,
+            ),
+          ),
+        );
+
+        return Transform.translate(
+          offset: Offset(0.0, _offset.dy),
+          //`Transform.translate`的`child`默认会被expand,
+          //如有需要, 这里可以指定alignment和size
+          child: SizedBox(
+            child: GestureDetector(
+              onVerticalDragDown: _handleOnVDragDown,
+              onVerticalDragUpdate: _handleOnVDragUpdate,
+              onVerticalDragEnd: _handleOnVDragEnd,
+              child: Stack(children: [
+                widget.child,
+                Align(
+                  alignment: Alignment.topCenter,
+                  child: collapsedView,
+                ),
+              ]),
+            ),
+          ),
+        );
+      }));
+
       return Stack(
         children: [
           Padding(
             padding: EdgeInsets.only(bottom: widget.collapsedHeight),
             child: widget.background,
           ),
-          StatefulBuilder(builder: ((context, setState) {
-            _setStateInner = setState;
-            return Transform.translate(
-              offset: Offset(0.0, _offset.dy),
-              //`Transform.translate`的`child`默认会被expand,
-              //如有需要, 这里可以指定alignment和size
-              child: SizedBox(
-                child: GestureDetector(
-                  onVerticalDragDown: _handleOnVDragDown,
-                  onVerticalDragUpdate: _handleOnVDragUpdate,
-                  onVerticalDragEnd: _handleOnVDragEnd,
-                  child: widget.child,
-                ),
-              ),
-            );
-          })),
+          slidePanel,
         ],
       );
     }));
@@ -191,13 +219,7 @@ class SlideViewState extends State<SlideView> with TickerProviderStateMixin {
       //抽屉位置
       _offset = _offsetSnapshot + (details.globalPosition - _dragDownPos!);
       //限定y分量值
-      _offset = Offset(
-          _offset.dx, max(0, min(height - widget.collapsedHeight, _offset.dy)));
-
-      //百分比, 用于同步计算其它效果
-      var percent = 1 - _offset.dy / (height - widget.collapsedHeight);
-
-      //TODO: 背景透明度
+      _offset = Offset(_offset.dx, max(0, min(_maxOffsetY(), _offset.dy)));
     });
   }
 
