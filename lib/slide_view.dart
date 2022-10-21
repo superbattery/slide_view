@@ -48,6 +48,8 @@ class SlideViewState extends State<SlideView> with TickerProviderStateMixin {
 
   /// offset of this view
   /// only y is valid
+  ///
+  /// 初始值无效, 因为此时无法获取高度来计算它
   Offset _offset = Offset.zero;
 
   /// copy of the offset, 跨函数计算用
@@ -56,11 +58,13 @@ class SlideViewState extends State<SlideView> with TickerProviderStateMixin {
   /// 按下的全局坐标
   Offset? _dragDownPos;
 
-  /// 动画效果是否向上滑动
-  bool _animTargetDirection = true;
+  /// 是否希望偏移值设为原点, 即希望动画效果是否向上滑动,
+  /// 否则向下滑动
+  bool _wantOffsetZero = true;
 
-  /// 抽屉的状态
-  bool isOpen = false;
+  /// 当前的偏移值是否为原点, 即当前抽屉的状态为打开,
+  /// 否则抽屉状态为关闭
+  bool _isCurOffsetZero = false;
 
   ///
   void Function(void Function())? _setStateInner;
@@ -79,13 +83,13 @@ class SlideViewState extends State<SlideView> with TickerProviderStateMixin {
       curve: widget.curve ?? _curve,
     )..addListener(() {
         _setStateInner?.call(() {
-          var leftDistance = _animTargetDirection
+          var leftDistance = _wantOffsetZero
               ? _offsetSnapshot.dy
               : (height - widget.collapsedHeight) - _offsetSnapshot.dy;
           _offset = Offset(
               _offsetSnapshot.dx,
               _offsetSnapshot.dy +
-                  (_animTargetDirection ? -leftDistance : leftDistance) *
+                  (_wantOffsetZero ? -leftDistance : leftDistance) *
                       _curved.value);
 
           //百分比, 用于同步计算其它效果
@@ -112,7 +116,8 @@ class SlideViewState extends State<SlideView> with TickerProviderStateMixin {
       //每次height值改变即更新
       WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
         //initialize the offset
-        _offset = Offset(0.0, isOpen ? 0.0 : height - widget.collapsedHeight);
+        _offset = Offset(
+            0.0, _isCurOffsetZero ? 0.0 : height - widget.collapsedHeight);
         //无论setState是否为空都在它外面进行赋值操作
         //避免setState为空时赋值操作未被执行
         _setStateInner?.call(() {});
@@ -145,27 +150,28 @@ class SlideViewState extends State<SlideView> with TickerProviderStateMixin {
   }
 
   /// 改变抽屉的状态
-  /// 
+  ///
   /// 若当前抽屉状态已处于目标状态, 则不做任何事.
   /// 否则取消当前正在进行的动画, 并改变抽屉为目标状态
-  /// 
-  /// 返回的Future得到值后代表动画结束, 已改变抽屉为目标状态, 
+  ///
+  /// 返回的Future得到值后代表动画结束, 已改变抽屉为目标状态,
   /// 或者当前的动画被取消, 抽屉状态未知
   Future<void> change(bool opening) async {
     // ignore: unnecessary_this
-    if (this.isOpen == _animTargetDirection && this.isOpen == opening) {
+    if (this._isCurOffsetZero == _wantOffsetZero &&
+        this._isCurOffsetZero == opening) {
       return;
     }
-    _animTargetDirection = opening;
+    _wantOffsetZero = opening;
     _ac.duration = widget.duration ?? defaultDuration;
     _offsetSnapshot = _offset;
     try {
       await _ac.forward(from: 0.0).orCancel;
-      if (isOpen == _animTargetDirection) {
+      if (_isCurOffsetZero == _wantOffsetZero) {
         return;
       }
-      isOpen = _animTargetDirection;
-      widget.onChange?.call(isOpen);
+      _isCurOffsetZero = _wantOffsetZero;
+      widget.onChange?.call(_isCurOffsetZero);
     } catch (err) {
       //print("anim canceled");
     }
@@ -197,7 +203,7 @@ class SlideViewState extends State<SlideView> with TickerProviderStateMixin {
 
   void _handleOnVDragEnd(DragEndDetails details) {
     var velocity = details.primaryVelocity ?? 0.0;
-    _animTargetDirection = () {
+    _wantOffsetZero = () {
       if (velocity < 0) {
         return true;
       } else if (velocity > 0) {
@@ -217,9 +223,9 @@ class SlideViewState extends State<SlideView> with TickerProviderStateMixin {
     }();
     _offsetSnapshot = _offset;
     _ac.forward(from: 0.0).orCancel.then((value) {
-      if (isOpen != _animTargetDirection) {
-        isOpen = _animTargetDirection;
-        widget.onChange?.call(isOpen);
+      if (_isCurOffsetZero != _wantOffsetZero) {
+        _isCurOffsetZero = _wantOffsetZero;
+        widget.onChange?.call(_isCurOffsetZero);
       }
     }).catchError((err) {
       //print("anim canceled");
