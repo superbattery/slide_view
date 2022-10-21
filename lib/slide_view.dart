@@ -162,8 +162,10 @@ class SlideViewState extends State<SlideView> with TickerProviderStateMixin {
         ),
       );
 
-      var backgroundMask = Container(
-        color: Colors.black.withOpacity((1.0 - offsetPercentage.dy) * 0.8),
+      var backgroundMask = IgnorePointer(
+        child: Container(
+          color: Colors.black.withOpacity((1.0 - offsetPercentage.dy) * 0.8),
+        ),
       );
 
       return Stack(
