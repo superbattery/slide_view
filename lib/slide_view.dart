@@ -2,7 +2,7 @@ library slide_view;
 
 import 'dart:math';
 
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 
 /// A SlideView.
@@ -119,7 +119,7 @@ class SlideViewState extends State<SlideView> with TickerProviderStateMixin {
     return LayoutBuilder(builder: buildForLayout);
   }
 
-  Widget buildForLayout(context, p1) {
+  Widget buildForLayout(BuildContext context, BoxConstraints p1) {
     //这里可能会被调用多次, 且前几次获取到的height值可能不是最新的,
     //比如可能为0
     height = p1.biggest.height;
@@ -132,7 +132,7 @@ class SlideViewState extends State<SlideView> with TickerProviderStateMixin {
       _setStateInner?.call(() {});
     });
 
-    var slidePanel = StatefulBuilder(builder: (context, setState) {
+    var slideViewBuilder = StatefulBuilder(builder: (context, setState) {
       _setStateInner = setState;
       var offsetPercentage = _offsetPercentage();
       //collapsed view
@@ -147,7 +147,7 @@ class SlideViewState extends State<SlideView> with TickerProviderStateMixin {
         ),
       );
 
-      return Transform.translate(
+      var slidePanel = Transform.translate(
         offset: Offset(0.0, _offset.dy),
         //`Transform.translate`的`child`默认会被expand,
         //如有需要, 这里可以指定alignment和size
@@ -166,17 +166,26 @@ class SlideViewState extends State<SlideView> with TickerProviderStateMixin {
           ),
         ),
       );
-    });
 
-    return Stack(
-      children: [
-        Padding(
-          padding: EdgeInsets.only(bottom: widget.collapsedHeight),
-          child: widget.background,
-        ),
-        slidePanel,
-      ],
-    );
+      var backgroundMask = Container(
+        color: Colors.black.withOpacity((1.0 - offsetPercentage.dy) * 0.8),
+      );
+
+      return Stack(
+        children: [
+          Padding(
+            padding: EdgeInsets.only(bottom: widget.collapsedHeight),
+            child: widget.background,
+          ),
+          Padding(
+            padding: EdgeInsets.only(bottom: widget.collapsedHeight),
+            child: backgroundMask,
+          ),
+          slidePanel,
+        ],
+      );
+    });
+    return slideViewBuilder;
   }
 
   /// 改变抽屉的状态
