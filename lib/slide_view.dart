@@ -124,13 +124,8 @@ class SlideViewState extends State<SlideView> with TickerProviderStateMixin {
     //比如可能为0
     height = p1.biggest.height;
     //每次height值改变即更新
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      //initialize the offset
-      _offset = Offset(0.0, _isCurOffsetZero ? 0.0 : _maxOffsetY());
-      //无论setState是否为空都在它外面进行赋值操作
-      //避免setState为空时赋值操作未被执行
-      _setStateInner?.call(() {});
-    });
+    //update the offset
+    _offset = Offset(0.0, _isCurOffsetZero ? 0.0 : _maxOffsetY());
 
     var slideViewBuilder = StatefulBuilder(builder: (context, setState) {
       _setStateInner = setState;
