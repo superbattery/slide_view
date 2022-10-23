@@ -62,7 +62,7 @@ class SlideViewState extends State<SlideView> with TickerProviderStateMixin {
 
   /// 是否希望偏移值设为原点, 即希望动画效果是否向上滑动,
   /// 否则向下滑动
-  bool _wantOffsetZero = true;
+  bool _wantOffsetZero = false;
 
   /// 当前的偏移值是否为原点, 即当前抽屉的状态为打开,
   /// 否则抽屉状态为关闭
@@ -212,6 +212,9 @@ class SlideViewState extends State<SlideView> with TickerProviderStateMixin {
       //print("anim canceled");
     }
   }
+
+  /// 抽屉状态处于已打开或正在打开
+  bool isOpen() => _wantOffsetZero;
 
   void _handleOnVDragDown(DragDownDetails details) {
     _ac.stop();
