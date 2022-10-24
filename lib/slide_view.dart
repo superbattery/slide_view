@@ -153,7 +153,9 @@ class SlideViewState extends State<SlideView> with TickerProviderStateMixin {
           child: GestureDetector(
             onVerticalDragDown: _handleOnVDragDown,
             onVerticalDragUpdate: _handleOnVDragUpdate,
-            onVerticalDragEnd: _handleOnVDragEnd,
+            onVerticalDragCancel: () => _handleOnVDragEndOrCancel(null),
+            onVerticalDragEnd: (details) =>
+                _handleOnVDragEndOrCancel(details.primaryVelocity),
             child: Stack(children: [
               widget.child,
               Align(
@@ -239,8 +241,8 @@ class SlideViewState extends State<SlideView> with TickerProviderStateMixin {
     });
   }
 
-  void _handleOnVDragEnd(DragEndDetails details) {
-    var velocity = details.primaryVelocity ?? 0.0;
+  void _handleOnVDragEndOrCancel(double? _velocity) {
+    var velocity = _velocity ?? 0.0;
     _wantOffsetZero = () {
       if (velocity < 0) {
         return true;
