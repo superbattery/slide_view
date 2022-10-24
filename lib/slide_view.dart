@@ -15,6 +15,7 @@ class SlideView extends StatefulWidget {
     this.duration,
     this.curve,
     this.collapsedHeight = 70,
+    this.autoPadBackground = true,
     this.onChange,
   });
 
@@ -24,6 +25,7 @@ class SlideView extends StatefulWidget {
   final Duration? duration;
   final Curve? curve;
   final double collapsedHeight;
+  final bool autoPadBackground;
   final void Function(bool isOpen)? onChange;
 
   @override
@@ -78,7 +80,8 @@ class SlideViewState extends State<SlideView> with TickerProviderStateMixin {
   /// range: 0.0-1.0
   ///
   /// 可用于同步计算其它动画效果等
-  Offset _offsetPercentage() => Offset(0.0, _offset.dy / _maxOffsetY());
+  Offset _offsetPercentage() =>
+      Offset(0.0, max(0.0, min(1.0, _offset.dy / _maxOffsetY())));
 
   @override
   void initState() {
@@ -171,11 +174,13 @@ class SlideViewState extends State<SlideView> with TickerProviderStateMixin {
       return Stack(
         children: [
           Padding(
-            padding: EdgeInsets.only(bottom: widget.collapsedHeight),
+            padding: EdgeInsets.only(
+                bottom: widget.autoPadBackground ? widget.collapsedHeight : 0),
             child: widget.background,
           ),
           Padding(
-            padding: EdgeInsets.only(bottom: widget.collapsedHeight),
+            padding: EdgeInsets.only(
+                bottom: widget.autoPadBackground ? widget.collapsedHeight : 0),
             child: backgroundMask,
           ),
           slidePanel,
