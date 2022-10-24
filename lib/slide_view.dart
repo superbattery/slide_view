@@ -137,7 +137,7 @@ class SlideViewState extends State<SlideView> with TickerProviderStateMixin {
       var collapsedView = SizedBox(
         height: widget.collapsedHeight,
         child: IgnorePointer(
-          ignoring: offsetPercentage.dy == 0.0,
+          ignoring: offsetPercentage.dy != 1.0,
           child: Opacity(
             opacity: offsetPercentage.dy,
             child: widget.collapsedChild,
